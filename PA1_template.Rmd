@@ -105,4 +105,3 @@ ggplot(idat2, aes(x=interval, y=mean)) +
     ggtitle("Average number of steps by intervals") +
     theme(legend.position="none") 
 ```
-
