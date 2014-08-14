@@ -1,20 +1,108 @@
-# Reproducible Research: Peer Assessment 1
+---
+title: "PA1_template.Rmd"
+author: "Peggy Fan"
+date: "August 13, 2014"
+output: html_document
+---
 
+Loading the data.
 
-## Loading and preprocessing the data
+```{r, echo = TRUE}
+data <- read.csv("/Users/peggyfan/Downloads/R_data/activity.csv")
+```
+Calculating the mean total number of steps taken per day and making a histogram.
+```{r, echo = TRUE}
+library(plyr)
+day <-ddply(data, c("date"),summarize,tot=sum(steps), na.rm=TRUE)
+hist(day$tot, axes=F,  ylim=c(0,35))
+axis(1)
+axis(side=2, at=seq(0,35,5), labels=seq(0,35,5))
+```
 
+Reporting the mean and median total number of steps per day.
+```{r, echo=TRUE}
+cdata <- ddply(data, .(date), summarise,
+               sum_steps = sum(steps, na.rm=TRUE),
+               mean = mean(steps, na.rm=TRUE),
+               median = median(steps, na.rm=TRUE) )
+(cdata)
+```
 
+Making a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).
 
-## What is mean total number of steps taken per day?
+```{r, echo=TRUE}
+idata <- ddply(data, c("interval"), summarise, mean= mean(steps, na.rm=TRUE))
+graphics::plot.default(
+  x = idata$interval,
+  y = idata$mean,
+  type = "l",
+  xlab = "Intervals",
+  ylab = "Average",
+  main = "Average Steps By Intervals"
+)
+````
 
+Identifying the 5-minute interval contains the maximum number of steps on average across all the days in the dataset.
+```{r, echo=TRUE}
+x<- which.max( idata [,2] )
+idata$interval[x]
+```
+Calculate and report the total number of missing values in the dataset, which is 2304.
 
+```{r, echo=TRUE}
+summary(data[!complete.cases(data$steps),])
+```
+Imputing the mean for every 5-minute interval to fill the missing values in the original dataset, then creating a new dataset called "dat2".
 
-## What is the average daily activity pattern?
+```{r, echo=TRUE}
+impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
+dat2 <- ddply(data, ~ interval, transform, steps = impute.mean(steps))
+```
+Making a histogram of the total number of steps taken each day.
 
+```{r, echo=TRUE}
+day2 <-ddply(dat2, c("date"),summarize,tot=sum(steps), na.rm=TRUE)
+hist(day2$tot, axes=F)
+axis(1)
+axis(2, at=seq(0,35, by=5), labels=seq(0,35, by=5))
+```
 
+Calculating and reporting the mean and median total number of steps taken per day. 
 
-## Imputing missing values
+```{r, echo=TRUE}
+cdata2 <- ddply(dat2, .(date), summarise,
+               sum_steps  = sum(steps, na.rm=TRUE),
+               mean = mean(steps, na.rm=TRUE),
+               median = median(steps, na.rm=TRUE) )
+(cdata2)
+```
+The impact of imputing missing data on the estimates of the total daily number of steps is on the days that have the sum of steps in the 10000-15000 range. With imputed values filling in the values of NAs, there are about 6-7 more days that fall into the range above. Moreover, the median for days that have NAs for steps changed from NA to 34.11, meaning that the imputed values increase the sum of steps for days with missing values.
 
+Next we look at the differences between weekdays and weekends.
+Creating a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+```{r, echo=TRUE}
+library(timeDate)
+dat2$dayofweek <- weekdays(as.Date(dat2$date))
 
+library(car)
+dat2$day_week <- recode(dat2$dayofweek, 
+                "c('Saturday', 'Sunday')='Weekend' ; 
+                c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')='Weekday'")
+day_week <- factor(dat2$day_week, labels = c("Weekday", "Weekend"))
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+Calculating the average number of steps taken per 5-minute interval (x-axis), averaged across all weekday days or weekend days (y-axis). 
+
+```{r, echo=TRUE}
+idat2 <- ddply(data, c("interval", "day_week"), summarise, mean= mean(steps, na.rm=TRUE))
+```
+Making the day_week into a factor variable of "weekday" and "weekend", then creating the time series plot for both.
+```{r, echo=TRUE}
+library(ggplot2)     
+ggplot(idat2, aes(x=interval, y=mean)) +
+    geom_line (data = idat2) +
+    facet_wrap(~day_week, ncol = 1) +
+    ggtitle("Average number of steps by intervals") +
+    theme(legend.position="none") 
+```
+
