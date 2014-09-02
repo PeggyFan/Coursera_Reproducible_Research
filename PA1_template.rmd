@@ -6,26 +6,28 @@ output: html_document
 ---
 
 Loading the data.
-
 ```{r, echo = TRUE}
-data <- read.csv("/Users/peggyfan/Downloads/R_data/activity.csv")
+setwd("/Users/peggyfan/Downloads/R_data/Reproducible_research")
+
+temp <- tempfile(fileext = ".zip")
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(url, destfile = temp, method = "curl")
+data <- read.csv(unzip(temp))
 ```
 Calculating the mean total number of steps taken per day and making a histogram.
 ```{r, echo = TRUE}
 library(plyr)
 day <-ddply(data, c("date"),summarize,tot=sum(steps), na.rm=TRUE)
-hist(day$tot, axes=F,  ylim=c(0,35))
+hist(day$tot, axes=F, ylim=c(0,35), xlab="Steps", main="Sum of steps taken per day")
 axis(1)
-axis(side=2, at=seq(0,35,5), labels=seq(0,35,5))
+axis(side=2,)
 ```
 
 Reporting the mean and median total number of steps per day.
 ```{r, echo=TRUE}
-cdata <- ddply(data, .(date), summarise,
-               sum_steps = sum(steps, na.rm=TRUE),
-               mean = mean(steps, na.rm=TRUE),
-               median = median(steps, na.rm=TRUE) )
-(cdata)
+mean(data$steps, na.rm = TRUE)
+median(data$steps, na.rm = TRUE)
+
 ```
 
 Making a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).
@@ -50,7 +52,7 @@ idata$interval[x]
 Calculate and report the total number of missing values in the dataset, which is 2304.
 
 ```{r, echo=TRUE}
-summary(data[!complete.cases(data$steps),])
+nrow(data[!complete.cases(data$steps),])
 ```
 Imputing the mean for every 5-minute interval to fill the missing values in the original dataset, then creating a new dataset called "dat2".
 
@@ -62,21 +64,19 @@ Making a histogram of the total number of steps taken each day.
 
 ```{r, echo=TRUE}
 day2 <-ddply(dat2, c("date"),summarize,tot=sum(steps), na.rm=TRUE)
-hist(day2$tot, axes=F)
+hist(day2$tot, axes=F, xlab="Steps", main="Sum of steps taken per day")
 axis(1)
 axis(2, at=seq(0,35, by=5), labels=seq(0,35, by=5))
+# 
 ```
 
 Calculating and reporting the mean and median total number of steps taken per day. 
 
 ```{r, echo=TRUE}
-cdata2 <- ddply(dat2, .(date), summarise,
-               sum_steps  = sum(steps, na.rm=TRUE),
-               mean = mean(steps, na.rm=TRUE),
-               median = median(steps, na.rm=TRUE) )
-(cdata2)
+mean(dat2$steps)
+median(dat2$steps)
 ```
-The impact of imputing missing data on the estimates of the total daily number of steps is on the days that have the sum of steps in the 10000-15000 range. With imputed values filling in the values of NAs, there are about 6-7 more days that fall into the range above. Moreover, the median for days that have NAs for steps changed from NA to 34.11, meaning that the imputed values increase the sum of steps for days with missing values.
+The impact of imputing missing data on the estimates of the total daily number of steps is on the days that have the sum of steps in the 10000-15000 range. With imputed values filling in the values of NAs, there are about 6-7 more days that fall into the range above. The mean and the median did not change.
 
 Next we look at the differences between weekdays and weekends.
 Creating a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
@@ -97,11 +97,20 @@ Calculating the average number of steps taken per 5-minute interval (x-axis), av
 idat2 <- ddply(data, c("interval", "day_week"), summarise, mean= mean(steps, na.rm=TRUE))
 ```
 Making the day_week into a factor variable of "weekday" and "weekend", then creating the time series plot for both.
+
 ```{r, echo=TRUE}
-library(ggplot2)     
-ggplot(idat2, aes(x=interval, y=mean)) +
-    geom_line (data = idat2) +
-    facet_wrap(~day_week, ncol = 1) +
-    ggtitle("Average number of steps by intervals") +
-    theme(legend.position="none") 
+library(lattice)
+xyplot(mean ~ interval | factor(day_week), type = "l",
+       data = idat2,
+       main = "Mean of total steps taken each day on weekends vs. weekdays",
+       xlab = "Number of steps",
+       ylab = "Interval",
+       layout = c(1, 2))
 ```
+
+library(knitr)
+library(markdown)
+knit("PA1_Template.Rmd")
+markdownToHTML("PA1_Template.md", "PA1_Template.html")
+knitr::knit2html
+
