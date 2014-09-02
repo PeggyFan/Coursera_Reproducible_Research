@@ -1,7 +1,7 @@
 ---
 title: "PA1_template.Rmd"
 author: "Peggy Fan"
-date: "August 13, 2014"
+date: "September 1, 2014"
 output: html_document
 ---
 
